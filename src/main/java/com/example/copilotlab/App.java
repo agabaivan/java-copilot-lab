@@ -16,16 +16,92 @@ public class App {
 
     private static final int PORT = 8080;
     private final UserService userService = new UserService();
+    private HttpServer server;
 
     public static void main(String[] args) throws IOException {
         new App().start();
     }
 
     public void start() throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", PORT), 0);
+        start(PORT);
+    }
+
+    public void start(int port) throws IOException {
+        this.server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
         server.createContext("/", this::handleIndex);
+        server.createContext("/api/users", this::handleApiUsers);
+        server.createContext("/api/users/", this::handleApiUserById);
         server.start();
-        System.out.printf("Java Copilot Lab running at http://localhost:%d%n", PORT);
+        System.out.printf("Java Copilot Lab running at http://localhost:%d%n", server.getAddress().getPort());
+    }
+
+    public int getPort() {
+        return server == null ? -1 : server.getAddress().getPort();
+    }
+
+    private void handleApiUsers(HttpExchange exchange) throws IOException {
+      // Only support GET for this simple API
+      if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+        exchange.sendResponseHeaders(405, -1);
+        return;
+      }
+
+      Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
+      String searchText = query.getOrDefault("search", "");
+      List<User> users = userService.findUsers(searchText);
+
+      String json = usersToJson(users);
+
+      exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+      exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+      byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+      exchange.sendResponseHeaders(200, bytes.length);
+
+      try (OutputStream output = exchange.getResponseBody()) {
+        output.write(bytes);
+      }
+    }
+
+    private void handleApiUserById(HttpExchange exchange) throws IOException {
+      if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+        exchange.sendResponseHeaders(405, -1);
+        return;
+      }
+
+      String path = exchange.getRequestURI().getPath();
+      // expected: /api/users/{id}
+      String[] parts = path.split("/");
+      if (parts.length < 4) {
+        exchange.sendResponseHeaders(400, -1);
+        return;
+      }
+
+      String idPart = parts[3];
+      int id;
+      try {
+        id = Integer.parseInt(idPart);
+      } catch (NumberFormatException e) {
+        exchange.sendResponseHeaders(400, -1);
+        return;
+      }
+
+      User user = userService.findById(id);
+      if (user == null) {
+        exchange.sendResponseHeaders(404, -1);
+        return;
+      }
+
+      String json = String.format("{\"id\":%d,\"name\":\"%s\",\"role\":\"%s\",\"team\":\"%s\"}",
+          user.id(), jsonEscape(user.name()), jsonEscape(user.role()), jsonEscape(user.team()));
+
+      exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+      exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+      byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+      exchange.sendResponseHeaders(200, bytes.length);
+
+      try (OutputStream output = exchange.getResponseBody()) {
+        output.write(bytes);
+      }
     }
 
     private void handleIndex(HttpExchange exchange) throws IOException {
@@ -134,5 +210,26 @@ public class App {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+                private String jsonEscape(String value) {
+              if (value == null) return "";
+              return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+                }
+
+                private String usersToJson(List<User> users) {
+              return users.stream()
+                .map(u -> String.format("{\"id\":%d,\"name\":\"%s\",\"role\":\"%s\",\"team\":\"%s\"}",
+                  u.id(), jsonEscape(u.name()), jsonEscape(u.role()), jsonEscape(u.team())))
+                .collect(Collectors.joining(",", "[", "]"));
+                }
+
+    public void stop() {
+        if (server != null) {
+            server.stop(0);
+        }
     }
 }

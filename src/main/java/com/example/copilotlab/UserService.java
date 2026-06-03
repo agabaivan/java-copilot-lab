@@ -8,7 +8,15 @@ public class UserService {
     private final List<User> sampleUsers = List.of(
             new User(1, "Ada Lovelace", "Application Developer", "Modernization"),
             new User(2, "Grace Hopper", "Principal Engineer", "Platform"),
-            new User(3, "Linus Torvalds", "Systems Developer", "Infrastructure"));
+            new User(3, "Linus Torvalds", "Systems Developer", "Infrastructure"),
+            new User(4, "Maya Patel", "UX Researcher", "Experience"),
+            new User(5, "Omar Sanchez", "Site Reliability Engineer", "Reliability"),
+            new User(6, "Naomi Chen", "Product Manager", "Growth"),
+            new User(7, "Jordi López", "Security Architect", "Compliance"),
+            new User(8, "Aisha Mohammed", "Data Analyst", "Insights"),
+            new User(9, "Keisha Brown", "Technical Program Manager", "Operations"),
+            new User(10, "Hugo Fischer", "QA Lead", "Quality"),
+            new User(11, "Priya Desai", "Cloud Engineer", "Infrastructure"));
 
     public List<User> findUsers(String searchText) {
         String normalizedSearch = normalize(searchText);
@@ -42,5 +50,12 @@ public class UserService {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    public User findById(int id) {
+        return sampleUsers.stream()
+                .filter(u -> u.id() == id)
+                .findFirst()
+                .orElse(null);
     }
 }

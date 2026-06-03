@@ -15,14 +15,14 @@ class UserServiceTest {
     void returnsAllUsersWhenSearchIsBlank() {
         List<User> users = userService.findUsers("");
 
-        assertEquals(3, users.size());
+        assertEquals(11, users.size());
     }
 
     @Test
     void returnsAllUsersWhenSearchIsNull() {
         List<User> users = userService.findUsers(null);
 
-        assertEquals(3, users.size());
+        assertEquals(11, users.size());
     }
 
     @Test
@@ -30,7 +30,7 @@ class UserServiceTest {
         List<User> users = userService.findUsers("ada");
 
         assertEquals(1, users.size());
-        assertEquals("Ada Lovelace", users.getFirst().name());
+        assertEquals("Ada Lovelace", users.get(0).name());
     }
 
     @Test
@@ -38,7 +38,7 @@ class UserServiceTest {
         List<User> users = userService.findUsers("platform");
 
         assertEquals(1, users.size());
-        assertEquals("Grace Hopper", users.getFirst().name());
+        assertEquals("Grace Hopper", users.get(0).name());
     }
 
     @Test
@@ -60,7 +60,7 @@ class UserServiceTest {
     void whitespaceOnlySearchReturnsAllUsers() {
         List<User> users = userService.findUsers("   ");
 
-        assertEquals(3, users.size());
+        assertEquals(11, users.size());
     }
 
     @Test
@@ -78,5 +78,18 @@ class UserServiceTest {
 
         assertEquals("Test User - Developer (Dev Team)", userService.summarize(normal));
         assertEquals(" -  ()", userService.summarize(withNulls));
+    }
+
+    @Test
+    void findByIdReturnsMatchingUser() {
+        User user = userService.findById(2);
+
+        assertEquals("Grace Hopper", user.name());
+        assertEquals("Platform", user.team());
+    }
+
+    @Test
+    void findByIdReturnsNullWhenUserMissing() {
+        assertEquals(null, userService.findById(999));
     }
 }
