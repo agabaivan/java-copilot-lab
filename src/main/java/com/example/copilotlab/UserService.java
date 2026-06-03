@@ -25,7 +25,7 @@ public class UserService {
     }
 
     public String summarize(User user) {
-        return user.name() + " - " + user.role() + " (" + user.team() + ")";
+        return safe(user.name()) + " - " + safe(user.role()) + " (" + safe(user.team()) + ")";
     }
 
     private String normalize(String value) {
@@ -33,6 +33,14 @@ public class UserService {
     }
 
     private boolean containsIgnoreCase(String value, String searchText) {
+        if (value == null) {
+            return false;
+        }
+
         return value.toLowerCase(Locale.ROOT).contains(searchText);
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 }
